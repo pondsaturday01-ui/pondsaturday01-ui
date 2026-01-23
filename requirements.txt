@@ -1,0 +1,18 @@
+# Facebook Reels Bot - Dependencies
+# Install with: pip install -r requirements.txt
+
+# Web automation
+selenium>=4.15.0
+
+# HTTP requests (for Telegram)
+requests>=2.31.0
+
+# YAML config parsing
+PyYAML>=6.0.1
+
+# Environment variables
+python-dotenv>=1.0.0
+
+# GUI Dashboard
+customtkinter>=5.2.0
+

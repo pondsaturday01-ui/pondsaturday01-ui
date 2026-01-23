@@ -1,0 +1,20 @@
+# โหมดปกติ (Run Now)
+python bot.py --now --pages 0
+
+# โหมด Variable Daily Quota (ใหม่!)
+python bot.py --quota
+
+# สร้างตารางวันนี้ (ดูว่าตารางสมเหตุสมผลก่อน):
+python bot.py --quota --dry-run
+
+# รันตามตาราง:
+python bot.py --quota --pages 0
+
+# หยุดทำงาน:
+python bot.py --stop
+
+# ดูตารางปัจจุบัน:
+python bot.py --quota --show-schedule
+
+# ดูตารางปัจจุบัน (แต่ไม่ส่ง):
+python bot.py --quota --show-schedule --dry-run

@@ -1,0 +1,35 @@
+# config.yaml - ฉบับ 10 เพจมหากาฬ
+schedule_times: ["08:00", "12:00", "16:00", "20:00"]
+dry_run: false
+
+captions:
+  - "สู้ๆ นะครับทุกคน วันนี้ต้องเป็นวันที่ดี! ✌️ #กำลังใจ"
+  - "เหนื่อยก็พัก ไหวก็ลุยต่อครับ ❤️ #Reels"
+  - "อย่ายอมแพ้ ความสำเร็จรออยู่! 🚀"
+  - "ยิ้มรับวันใหม่ สดใสกว่าเดิม 😊"
+  - "เป็นกำลังใจให้คนสู้งานทุกคนครับ 💼"
+
+pages:
+  # เพจที่ 1-5
+  - url: "https://www.facebook.com/Link_Page_1"
+    folder: "MyReels1"
+  - url: "https://www.facebook.com/Link_Page_2"
+    folder: "MyReels2"
+  - url: "https://www.facebook.com/Link_Page_3"
+    folder: "MyReels3"
+#  - url: "https://www.facebook.com/Link_Page_4"
+#    folder: "MyReels4"
+#  - url: "https://www.facebook.com/Link_Page_5"
+#    folder: "MyReels5"
+    
+# เพจที่ 6-10
+#  - url: "https://www.facebook.com/Link_Page_6"
+#    folder: "MyReels6"
+#  - url: "https://www.facebook.com/Link_Page_7"
+#    folder: "MyReels7"
+#  - url: "https://www.facebook.com/Link_Page_8"
+#    folder: "MyReels8"
+#  - url: "https://www.facebook.com/Link_Page_9"
+#    folder: "MyReels9"
+#  - url: "https://www.facebook.com/Link_Page_10"
+#    folder: "MyReels10"

@@ -1,0 +1,48 @@
+# Environment files (contains secrets)
+.env
+.env.local
+.env.*.local
+
+# Chrome Profile (large data, machine-specific)
+bot_brain/
+chrome_profile/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.venv/
+
+# Logs and temp files
+logs/
+*.log
+daily_schedule.json
+bot_log.txt
+
+# Media and output folders
+MyReels/
+MyReels*/
+kook/
+
+# Reports
+daily_report.csv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Build
+dist/
+build/
+*.egg-info/
