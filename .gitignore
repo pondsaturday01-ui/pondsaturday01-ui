@@ -5,6 +5,7 @@
 
 # Chrome Profile (large data, machine-specific)
 bot_brain/
+bot_brain_page*/
 chrome_profile/
 
 # Python

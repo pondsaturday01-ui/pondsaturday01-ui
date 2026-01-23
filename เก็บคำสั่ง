@@ -18,3 +18,20 @@ python bot.py --quota --show-schedule
 
 # ดูตารางปัจจุบัน (แต่ไม่ส่ง):
 python bot.py --quota --show-schedule --dry-run
+
+วิธีรัน Bot:
+ตัวเลือกที่ 1: รัน Dashboard (แนะนำ)
+
+#python dashboard.py
+
+จะได้หน้าต่าง GUI สำหรับควบคุม bot
+
+ตัวเลือกที่ 2: รันแบบ Terminal
+
+#python bot.py
+
+ตัวเลือกที่ 3: รันแบบตารางเวลาอัตโนมัติ
+
+#python daily_scheduler.py
+
+Bot จะโพสต์ตามเวลาที่กำหนด (08:00, 12:00, 16:00, 20:00)

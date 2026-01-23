@@ -10,8 +10,9 @@ from selenium.common.exceptions import TimeoutException
 from logger import BotLogger
 
 class FacebookReelsBot:
-    def __init__(self, config):
+    def __init__(self, config, profile_name="bot_brain"):
         self.config = config
+        self.profile_name = profile_name
         self.driver = None
         self.logger = BotLogger(log_dir="logs")
 
@@ -19,13 +20,14 @@ class FacebookReelsBot:
         print(f"[{time.strftime('%H:%M:%S')}] {message}")
 
     def setup_driver(self):
-        self.log(">>> กำลังเปิด Chrome...")
+        self.log(f">>> กำลังเปิด Chrome (Profile: {self.profile_name})...")
         options = webdriver.ChromeOptions()
-        # ใช้ path ปัจจุบันเก็บข้อมูล Chrome
-        options.add_argument(f"user-data-dir={os.path.join(os.getcwd(), 'bot_brain')}")
+        # ใช้ profile แยกแต่ละเพจ
+        profile_path = os.path.join(os.getcwd(), self.profile_name)
+        options.add_argument(f"user-data-dir={profile_path}")
         options.add_experimental_option("detach", True)
         options.add_argument("--disable-notifications")
-        
+
         self.driver = webdriver.Chrome(options=options)
         self.driver.maximize_window()
 

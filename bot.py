@@ -64,35 +64,45 @@ def spintax(text):
 # ⚙️ PAGE & FOLDER CONFIG
 # ===========================
 PAGE_MAPPINGS = [
-    # [0] เพจที่ 1
+    # [0] เพจที่ 1 - ปาฏิหาริย์ตัวเลข (หวย/ตัวเลข)
     {
         "name": "ปาฏิหาริย์ตัวเลข",
-        "url": "https://www.facebook.com/profile.php?id=61584846901511", 
+        "url": "https://www.facebook.com/profile.php?id=61584846901511",
         "folder": "MyReels",
-        "mode": "sequence"
+        "mode": "sequence",
+        "caption_template": MY_CAPTION_TEMPLATE  # ใช้ template เดิม (หวย)
     },
-    # [1] เพจที่ 2
+    # [1] เพจที่ 2 - Add.ภูมิV.4 (ทั่วไป)
     {
         "name": "Add.ภูมิV.4",
-        "url": "https://www.facebook.com/profile.php?id=61585373284011", 
+        "url": "https://www.facebook.com/profile.php?id=61585373284011",
         "folder": "MyReels2",
-        "mode": "random"
+        "mode": "random",
+        "caption_template": """
+{สวัสดี|หวัดดี|Hello}ครับ 😊
+.
+วันนี้มี {เรื่องดีๆ|คอนเทนต์|เรื่องราว} มาฝาก
+{เป็นกำลังใจ|ติดตาม|สนับสนุน}กันนะครับ ✨
+.
+#Reels #Shorts #เปิดการมองเห็น #ติดตาม
+"""
     },
-    # [2] เพจที่ 3
+    # [2] เพจที่ 3 - ขุมทรัพย์ตัวเลข (หวย)
     {
         "name": "ขุมทรัพย์ตัวเลข",
-        "url": "https://www.facebook.com/profile.php?id=61585926308020", 
+        "url": "https://www.facebook.com/profile.php?id=61585926308020",
         "folder": "MyReels3",
-        "mode": "random"
+        "mode": "random",
+        "caption_template": MY_CAPTION_TEMPLATE  # ใช้ template เดิม (หวย)
     },
     # [3-9] ใส่เพิ่มได้ตามปกติ...
-    {"name": "ชื่อเพจที่_4", "url": "ใส่_URL_เพจ_4", "folder": "MyReels4", "mode": "random"},
-    {"name": "ชื่อเพจที่_5", "url": "ใส่_URL_เพจ_5", "folder": "MyReels5", "mode": "random"},
-    {"name": "ชื่อเพจที่_6", "url": "ใส่_URL_เพจ_6", "folder": "MyReels6", "mode": "random"},
-    {"name": "ชื่อเพจที่_7", "url": "ใส่_URL_เพจ_7", "folder": "MyReels7", "mode": "random"},
-    {"name": "ชื่อเพจที่_8", "url": "ใส่_URL_เพจ_8", "folder": "MyReels8", "mode": "random"},
-    {"name": "ชื่อเพจที่_9", "url": "ใส่_URL_เพจ_9", "folder": "MyReels9", "mode": "random"},
-    {"name": "ชื่อเพจที่_10", "url": "ใส่_URL_เพจ_10", "folder": "MyReels10", "mode": "random"},
+    {"name": "ชื่อเพจที่_4", "url": "ใส่_URL_เพจ_4", "folder": "MyReels4", "mode": "random", "caption_template": MY_CAPTION_TEMPLATE},
+    {"name": "ชื่อเพจที่_5", "url": "ใส่_URL_เพจ_5", "folder": "MyReels5", "mode": "random", "caption_template": MY_CAPTION_TEMPLATE},
+    {"name": "ชื่อเพจที่_6", "url": "ใส่_URL_เพจ_6", "folder": "MyReels6", "mode": "random", "caption_template": MY_CAPTION_TEMPLATE},
+    {"name": "ชื่อเพจที่_7", "url": "ใส่_URL_เพจ_7", "folder": "MyReels7", "mode": "random", "caption_template": MY_CAPTION_TEMPLATE},
+    {"name": "ชื่อเพจที่_8", "url": "ใส่_URL_เพจ_8", "folder": "MyReels8", "mode": "random", "caption_template": MY_CAPTION_TEMPLATE},
+    {"name": "ชื่อเพจที่_9", "url": "ใส่_URL_เพจ_9", "folder": "MyReels9", "mode": "random", "caption_template": MY_CAPTION_TEMPLATE},
+    {"name": "ชื่อเพจที่_10", "url": "ใส่_URL_เพจ_10", "folder": "MyReels10", "mode": "random", "caption_template": MY_CAPTION_TEMPLATE},
 ]
 
 # ===========================
@@ -136,72 +146,107 @@ def get_video(folder_path, mode="random"):
         print(f"🎲 [Mode: Random] สุ่มได้คลิป: {selected}")
         return os.path.join(folder_path, selected)
 
-def execute_job(bot, category="Lottery", selected_indices=None):
+def execute_job(category="Lottery", selected_indices=None):
+    """วนลูปโพสต์แต่ละเพจ โดยแต่ละเพจเปิด Chrome ใหม่"""
+
+    # เตรียม work_list
     if selected_indices is None:
-        work_list = PAGE_MAPPINGS
+        work_list = list(enumerate(PAGE_MAPPINGS))
     else:
         work_list = []
         for i in selected_indices:
             if 0 <= i < len(PAGE_MAPPINGS):
-                work_list.append(PAGE_MAPPINGS[i])
-        
-        if not work_list: 
+                work_list.append((i, PAGE_MAPPINGS[i]))
+
+        if not work_list:
             print("⚠️ ไม่พบเพจที่เลือก... รันทั้งหมดแทนครับ")
-            work_list = PAGE_MAPPINGS
+            work_list = list(enumerate(PAGE_MAPPINGS))
 
     print(f"🎬 เริ่มภารกิจวนลูป... (จำนวน {len(work_list)} เพจ)")
-    
-    for page_data in work_list:
-        target_url = page_data["url"]
-        current_folder = page_data["folder"]
+
+    for page_idx, page_data in work_list:
+        # สร้าง profile name แยกแต่ละเพจ
+        profile_name = f"bot_brain_page{page_idx}"
         page_name = page_data.get("name", "Unknown Page")
-        mode = page_data.get("mode", "random")
-        
-        print(f"\n🚀 กำลังเริ่มงานเพจ: {page_name}")
-        
-        if "ใส่_URL" in target_url:
-            continue
 
-        print(f"📂 ดึงคลิปจาก: {current_folder}")
-        
+        print(f"\n{'='*60}")
+        print(f"🚀 เพจ: {page_name} (Profile: {profile_name})")
+        print(f"{'='*60}")
+
+        # เปิด Chrome ใหม่สำหรับเพจนี้
+        config = load_config()
+        if not config: config = {}
+        if "profile_path" not in config: config["profile_path"] = os.getcwd()
+
+        bot = FacebookReelsBot(config, profile_name=profile_name)
+        bot.setup_driver()
+
+        print("Waiting for Facebook login (30s)...")
+        time.sleep(30)
+
+        # โพสต์เพจนี้
         try:
-            bot.handle_page_switch(target_url)
+            execute_single_page_work(bot, page_idx, page_data)
         except Exception as e:
-            print(f"⚠️ สลับเพจมีปัญหา: {e}")
-            continue
-        
-        base_path = os.path.dirname(os.path.abspath(__file__))
-        full_folder_path = os.path.join(base_path, current_folder)
-        video_path = get_video(full_folder_path, mode)
-        
-        if not video_path:
-             print(f"⚠️ โฟลเดอร์ {current_folder} คลิปหมด! ข้าม...")
-             continue
+            print(f"❌ เพจ {page_name} เกิด error: {e}")
 
-        print(f"🎥 ไฟล์: {os.path.basename(video_path)}")
-        
-        # ✅ ใช้แคปชั่นจากด้านบนสุดที่เราตั้งค่าไว้
-        used_caption = spintax(MY_CAPTION_TEMPLATE)
-        print(f"📝 แคปชั่นที่ใช้: {used_caption}")
+        # ปิด Chrome
+        print(f"🔒 ปิด Chrome สำหรับ {page_name}")
+        bot.driver.quit()
 
-        success, reason, _ = bot.run_post_task(video_path, used_caption)
-        
-        video_name = os.path.basename(video_path)
-        status_text = "Success" if success else f"Failed: {reason}"
-        save_report(f"{video_name} @ {page_name}", status_text, used_caption)
-
-        if success:
-             print("✅ โพสต์สำเร็จ! ย้ายเข้ากรุ...")
-             bot.move_to_posted(video_path, full_folder_path)
-             send_telegram_msg(f"✅ โพสต์สำเร็จ!\nเพจ: {page_name}\nไฟล์: {video_name}")
-        else:
-             print("❌ โพสต์ไม่ผ่าน")
-        
+        # พักก่อนเพจถัดไป
         sleep_time = random.randint(60, 180)
-        print(f"💤 พัก {sleep_time} วินาที...")
+        print(f"💤 พัก {sleep_time} วินาทีก่อนเพจถัดไป...")
         time.sleep(sleep_time)
-    
+
     print("🏁 จบรอบการทำงานแล้ว!")
+
+
+def execute_single_page_work(bot, page_idx, page_data):
+    """โค้ดเดิมที่ทำงานกับเพจเดียว (แยกออกมาจาก execute_job เดิม)"""
+    target_url = page_data["url"]
+    current_folder = page_data["folder"]
+    page_name = page_data.get("name", "Unknown Page")
+    mode = page_data.get("mode", "random")
+
+    if "ใส่_URL" in target_url:
+        return
+
+    print(f"📂 ดึงคลิปจาก: {current_folder}")
+
+    try:
+        bot.handle_page_switch(target_url)
+    except Exception as e:
+        print(f"⚠️ สลับเพจมีปัญหา: {e}")
+        return
+
+    base_path = os.path.dirname(os.path.abspath(__file__))
+    full_folder_path = os.path.join(base_path, current_folder)
+    video_path = get_video(full_folder_path, mode)
+
+    if not video_path:
+         print(f"⚠️ โฟลเดอร์ {current_folder} คลิปหมด! ข้าม...")
+         return
+
+    print(f"🎥 ไฟล์: {os.path.basename(video_path)}")
+
+    # ดึง caption template จาก page_data
+    caption_template = page_data.get("caption_template", MY_CAPTION_TEMPLATE)
+    used_caption = spintax(caption_template)
+    print(f"📝 แคปชั่นที่ใช้: {used_caption}")
+
+    success, reason, _ = bot.run_post_task(video_path, used_caption)
+
+    video_name = os.path.basename(video_path)
+    status_text = "Success" if success else f"Failed: {reason}"
+    save_report(f"{video_name} @ {page_name}", status_text, used_caption)
+
+    if success:
+         print("✅ โพสต์สำเร็จ! ย้ายเข้ากรุ...")
+         bot.move_to_posted(video_path, full_folder_path)
+         send_telegram_msg(f"✅ โพสต์สำเร็จ!\nเพจ: {page_name}\nไฟล์: {video_name}")
+    else:
+         print("❌ โพสต์ไม่ผ่าน")
 
 def execute_single_page(bot, page_index, page_data):
     """โพสต์ 1 ครั้งสำหรับเพจที่ระบุ"""
@@ -351,10 +396,6 @@ def main():
     parser.add_argument("--times", type=str, default=None, help="Custom schedule times e.g. 08:00,12:00")
     args = parser.parse_args()
 
-    config = load_config()
-    if not config: config = {}
-    if "profile_path" not in config: config["profile_path"] = os.getcwd()
-
     # โหมด Dry-Run: ไม่เปิด browser
     if getattr(args, 'dry_run', False) and args.quota:
         print("\n[DRY-RUN] Generating schedule only (no browser)...")
@@ -364,25 +405,27 @@ def main():
         print("Schedule saved to: daily_schedule.json")
         return
 
-    bot = FacebookReelsBot(config)
-    bot.setup_driver()
-
-    print("Waiting for Facebook login (60s)...")
-
     selected_indices = None
     if args.pages and args.pages != "all":
         try:
             selected_indices = [int(x) for x in args.pages.split(",")]
         except: pass
 
-    # โหมด 1: Run Now
+    # โหมด 1: Run Now (ไม่สร้าง bot ตั้งแต่ต้น)
     if args.now:
-        execute_job(bot, category="Lottery", selected_indices=selected_indices)
-        bot.driver.quit()
+        execute_job(category="Lottery", selected_indices=selected_indices)
         return
-    
-    # โหมด 2: Variable Daily Quota
+
+    # โหมด 2: Quota Mode (ต้องสร้าง bot เพราะใช้ตลอดวัน)
     if args.quota:
+        config = load_config()
+        if not config: config = {}
+        if "profile_path" not in config: config["profile_path"] = os.getcwd()
+
+        # Quota mode ยังใช้ profile เดียว (bot_brain) เหมือนเดิม
+        bot = FacebookReelsBot(config, profile_name="bot_brain")
+        bot.setup_driver()
+
         try:
             run_quota_mode(bot, max_tasks=getattr(args, 'max_tasks', None))
         except KeyboardInterrupt:
@@ -393,17 +436,21 @@ def main():
 
     # โหมด 3: Scheduler ตามเวลา
     print("⏰ เข้าสู่โหมดตั้งเวลา (Scheduler)...")
-    
+    print("ℹ️  โหมดนี้จะเปิด-ปิด Chrome แต่ละรอบ (ใช้ profile แยกแต่ละเพจ)")
+
+    config = load_config()
+    if not config: config = {}
+
     if args.times:
         schedule_times = [t.strip() for t in args.times.split(",") if t.strip()]
     else:
         schedule_times = config.get('schedule_times', ["08:00", "12:00", "18:00"])
-    
+
     while True:
         current_time = datetime.now().strftime("%H:%M")
         if current_time in schedule_times:
             print(f"\n🔔 ถึงเวลา {current_time} แล้ว!")
-            execute_job(bot, category="Lottery", selected_indices=selected_indices)
+            execute_job(category="Lottery", selected_indices=selected_indices)
             time.sleep(61)
         else:
             print(f"\r⏳ รอเวลา {current_time} ... (เป้าหมาย: {schedule_times})", end="")
