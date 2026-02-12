@@ -147,10 +147,8 @@ def get_video(folder_path, mode="random"):
         print(f"🎲 [Mode: Random] สุ่มได้คลิป: {selected}")
         return os.path.join(folder_path, selected)
 
-def execute_job(category="Lottery", selected_indices=None):
-    """วนลูปโพสต์แต่ละเพจ โดยแต่ละเพจเปิด Chrome ใหม่"""
-
-    # เตรียม work_list
+def get_work_list(selected_indices=None):
+    """เตรียมรายการเพจที่จะทำงาน (กรอง URL ที่ยังไม่ได้ตั้งค่าออก)"""
     if selected_indices is None:
         work_list = list(enumerate(PAGE_MAPPINGS))
     else:
@@ -158,96 +156,60 @@ def execute_job(category="Lottery", selected_indices=None):
         for i in selected_indices:
             if 0 <= i < len(PAGE_MAPPINGS):
                 work_list.append((i, PAGE_MAPPINGS[i]))
-
         if not work_list:
             print("⚠️ ไม่พบเพจที่เลือก... รันทั้งหมดแทนครับ")
             work_list = list(enumerate(PAGE_MAPPINGS))
 
-    print(f"🎬 เริ่มภารกิจวนลูป... (จำนวน {len(work_list)} เพจ)")
-
-    for page_idx, page_data in work_list:
-        # สร้าง profile name แยกแต่ละเพจ
-        profile_name = f"bot_brain_page{page_idx}"
-        page_name = page_data.get("name", "Unknown Page")
-
-        print(f"\n{'='*60}")
-        print(f"🚀 เพจ: {page_name} (Profile: {profile_name})")
-        print(f"{'='*60}")
-
-        # เปิด Chrome ใหม่สำหรับเพจนี้
-        config = load_config()
-        if not config: config = {}
-        if "profile_path" not in config: config["profile_path"] = os.getcwd()
-
-        bot = FacebookReelsBot(config, profile_name=profile_name)
-        bot.setup_driver()
-
-        print("Waiting for Facebook login (30s)...")
-        time.sleep(30)
-
-        # โพสต์เพจนี้
-        try:
-            execute_single_page_work(bot, page_idx, page_data)
-        except Exception as e:
-            print(f"❌ เพจ {page_name} เกิด error: {e}")
-
-        # ปิด Chrome อย่างปลอดภัย
-        print(f"🔒 ปิด Chrome สำหรับ {page_name}")
-        bot.safe_quit()
-
-        # พักก่อนเพจถัดไป
-        sleep_time = random.randint(60, 180)
-        print(f"💤 พัก {sleep_time} วินาทีก่อนเพจถัดไป...")
-        time.sleep(sleep_time)
-
-    print("🏁 จบรอบการทำงานแล้ว!")
+    # กรองเพจที่ยังไม่ได้ตั้งค่า URL ออก
+    work_list = [(i, p) for i, p in work_list if "ใส่_URL" not in p.get("url", "")]
+    return work_list
 
 
-def execute_single_page_work(bot, page_idx, page_data):
-    """โค้ดเดิมที่ทำงานกับเพจเดียว (แยกออกมาจาก execute_job เดิม)"""
-    target_url = page_data["url"]
-    current_folder = page_data["folder"]
-    page_name = page_data.get("name", "Unknown Page")
-    mode = page_data.get("mode", "random")
+def run_once_mode(selected_indices=None):
+    """โหมดโพสต์ทันที — เปิด Chrome 1 ตัว วนลูปสลับเพจโพสต์ทุกเพจที่เลือก"""
+    work_list = get_work_list(selected_indices)
 
-    if "ใส่_URL" in target_url:
+    if not work_list:
+        print("⚠️ ไม่มีเพจที่พร้อมทำงาน")
         return
 
-    print(f"📂 ดึงคลิปจาก: {current_folder}")
+    print(f"\n{'='*50}")
+    print(f"RUN ONCE MODE (Chrome เดียว สลับเพจ)")
+    print(f"   เพจที่จะโพสต์: {len(work_list)} เพจ")
+    print(f"{'='*50}\n")
+
+    config = load_config()
+    if not config: config = {}
+    if "profile_path" not in config: config["profile_path"] = os.getcwd()
+
+    bot = FacebookReelsBot(config, profile_name="bot_brain")
+    bot.setup_driver()
+
+    print("Waiting for Facebook login (30s)...")
+    time.sleep(30)
 
     try:
-        bot.handle_page_switch(target_url)
-    except Exception as e:
-        print(f"⚠️ สลับเพจมีปัญหา: {e}")
-        return
+        for page_idx, page_data in work_list:
+            page_name = page_data.get("name", "Unknown")
 
-    base_path = os.path.dirname(os.path.abspath(__file__))
-    full_folder_path = os.path.join(base_path, current_folder)
-    video_path = get_video(full_folder_path, mode)
+            print(f"\n{'='*60}")
+            print(f"🚀 เพจ: {page_name}")
+            print(f"{'='*60}")
 
-    if not video_path:
-         print(f"⚠️ โฟลเดอร์ {current_folder} คลิปหมด! ข้าม...")
-         return
+            success, reason = execute_single_page(bot, page_idx, page_data)
 
-    print(f"🎥 ไฟล์: {os.path.basename(video_path)}")
+            # พักก่อนเพจถัดไป
+            if page_idx != work_list[-1][0]:
+                sleep_time = random.randint(60, 180)
+                print(f"💤 พัก {sleep_time} วินาทีก่อนเพจถัดไป...")
+                time.sleep(sleep_time)
 
-    # ดึง caption template จาก page_data
-    caption_template = page_data.get("caption_template", MY_CAPTION_TEMPLATE)
-    used_caption = spintax(caption_template)
-    print(f"📝 แคปชั่นที่ใช้: {used_caption}")
+        print("\n🏁 จบรอบการทำงานแล้ว!")
+    except KeyboardInterrupt:
+        print("\n[STOPPED] User cancelled")
+    finally:
+        bot.safe_quit()
 
-    success, reason, _ = bot.run_post_task(video_path, used_caption)
-
-    video_name = os.path.basename(video_path)
-    status_text = "Success" if success else f"Failed: {reason}"
-    save_report(f"{video_name} @ {page_name}", status_text, used_caption)
-
-    if success:
-         print("✅ โพสต์สำเร็จ! ย้ายเข้ากรุ...")
-         bot.move_to_posted(video_path, full_folder_path)
-         send_telegram_msg(f"✅ โพสต์สำเร็จ!\nเพจ: {page_name}\nไฟล์: {video_name}")
-    else:
-         print("❌ โพสต์ไม่ผ่าน")
 
 def execute_single_page(bot, page_index, page_data):
     """โพสต์ 1 ครั้งสำหรับเพจที่ระบุ"""
@@ -414,9 +376,9 @@ def main():
         except ValueError as e:
             print(f"⚠️ --pages รูปแบบผิด: {e} (ใช้ทุกเพจแทน)")
 
-    # โหมด 1: Run Now (ไม่สร้าง bot ตั้งแต่ต้น)
+    # โหมด 1: Run Now (Chrome เดียว สลับเพจ)
     if args.now:
-        execute_job(category="Lottery", selected_indices=selected_indices)
+        run_once_mode(selected_indices=selected_indices)
         return
 
     # โหมด 2: Quota Mode (ต้องสร้าง bot เพราะใช้ตลอดวัน)
@@ -437,9 +399,9 @@ def main():
             bot.safe_quit()
         return
 
-    # โหมด 3: Scheduler ตามเวลา
+    # โหมด 3: Scheduler ตามเวลา (Chrome เดียว สลับเพจ)
     print("⏰ เข้าสู่โหมดตั้งเวลา (Scheduler)...")
-    print("ℹ️  โหมดนี้จะเปิด-ปิด Chrome แต่ละรอบ (ใช้ profile แยกแต่ละเพจ)")
+    print("ℹ️  โหมดนี้จะเปิด Chrome 1 ตัว แล้วสลับเพจโพสต์ตามเวลา")
 
     config = load_config()
     if not config: config = {}
@@ -454,7 +416,7 @@ def main():
             current_time = datetime.now().strftime("%H:%M")
             if current_time in schedule_times:
                 print(f"\n🔔 ถึงเวลา {current_time} แล้ว!")
-                execute_job(category="Lottery", selected_indices=selected_indices)
+                run_once_mode(selected_indices=selected_indices)
                 time.sleep(61)
             else:
                 print(f"\r⏳ รอเวลา {current_time} ... (เป้าหมาย: {schedule_times})", end="")
