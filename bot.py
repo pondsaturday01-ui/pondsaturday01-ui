@@ -120,15 +120,16 @@ def send_telegram_msg(message):
         url = f"https://api.telegram.org/bot{token}/sendMessage"
         data = {"chat_id": chat_id, "text": message}
         requests.post(url, data=data, timeout=10)
-    except:
-        pass  # ล้มเหลวก็ข้ามไป
+    except Exception as e:
+        print(f"⚠️ Telegram ส่งไม่ได้: {e}")
 
 def load_config():
     try:
         if os.path.exists("config.yaml"):
             with open("config.yaml", "r", encoding="utf-8") as f:
                 return yaml.safe_load(f)
-    except: pass
+    except Exception as e:
+        print(f"⚠️ อ่าน config.yaml ไม่ได้: {e}")
     return {}
 
 def get_video(folder_path, mode="random"):
@@ -190,9 +191,9 @@ def execute_job(category="Lottery", selected_indices=None):
         except Exception as e:
             print(f"❌ เพจ {page_name} เกิด error: {e}")
 
-        # ปิด Chrome
+        # ปิด Chrome อย่างปลอดภัย
         print(f"🔒 ปิด Chrome สำหรับ {page_name}")
-        bot.driver.quit()
+        bot.safe_quit()
 
         # พักก่อนเพจถัดไป
         sleep_time = random.randint(60, 180)
@@ -274,8 +275,9 @@ def execute_single_page(bot, page_index, page_data):
     video_name = os.path.basename(video_path)
     post_time = datetime.now().strftime("%H:%M:%S")
     print(f"[VIDEO] {video_name}")
-    
-    used_caption = spintax(MY_CAPTION_TEMPLATE)
+
+    caption_template = page_data.get("caption_template", MY_CAPTION_TEMPLATE)
+    used_caption = spintax(caption_template)
     success, reason, _ = bot.run_post_task(video_path, used_caption)
     
     status_text = "Success" if success else f"Failed: {reason}"
@@ -409,7 +411,8 @@ def main():
     if args.pages and args.pages != "all":
         try:
             selected_indices = [int(x) for x in args.pages.split(",")]
-        except: pass
+        except ValueError as e:
+            print(f"⚠️ --pages รูปแบบผิด: {e} (ใช้ทุกเพจแทน)")
 
     # โหมด 1: Run Now (ไม่สร้าง bot ตั้งแต่ต้น)
     if args.now:
@@ -431,7 +434,7 @@ def main():
         except KeyboardInterrupt:
             print("\n[STOPPED] User cancelled")
         finally:
-            bot.driver.quit()
+            bot.safe_quit()
         return
 
     # โหมด 3: Scheduler ตามเวลา
@@ -446,15 +449,18 @@ def main():
     else:
         schedule_times = config.get('schedule_times', ["08:00", "12:00", "18:00"])
 
-    while True:
-        current_time = datetime.now().strftime("%H:%M")
-        if current_time in schedule_times:
-            print(f"\n🔔 ถึงเวลา {current_time} แล้ว!")
-            execute_job(category="Lottery", selected_indices=selected_indices)
-            time.sleep(61)
-        else:
-            print(f"\r⏳ รอเวลา {current_time} ... (เป้าหมาย: {schedule_times})", end="")
-            time.sleep(10)
+    try:
+        while True:
+            current_time = datetime.now().strftime("%H:%M")
+            if current_time in schedule_times:
+                print(f"\n🔔 ถึงเวลา {current_time} แล้ว!")
+                execute_job(category="Lottery", selected_indices=selected_indices)
+                time.sleep(61)
+            else:
+                print(f"\r⏳ รอเวลา {current_time} ... (เป้าหมาย: {schedule_times})", end="")
+                time.sleep(10)
+    except KeyboardInterrupt:
+        print("\n[STOPPED] User cancelled (Scheduler mode)")
 
 
 if __name__ == "__main__":

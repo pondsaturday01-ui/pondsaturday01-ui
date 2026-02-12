@@ -72,15 +72,35 @@ def load_schedule():
         try:
             with open(SCHEDULE_FILE, "r", encoding="utf-8") as f:
                 return json.load(f)
-        except:
-            pass
+        except (json.JSONDecodeError, IOError) as e:
+            safe_print(f"[WARNING] อ่าน {SCHEDULE_FILE} ไม่ได้: {e} — จะสร้างใหม่")
     return {}
 
 
 def save_schedule(schedule):
-    """บันทึกตารางลงไฟล์ JSON"""
-    with open(SCHEDULE_FILE, "w", encoding="utf-8") as f:
-        json.dump(schedule, f, ensure_ascii=False, indent=2)
+    """บันทึกตารางลงไฟล์ JSON อย่างปลอดภัย (เขียน tmp ก่อนแล้ว rename)"""
+    tmp_file = SCHEDULE_FILE + ".tmp"
+    try:
+        with open(tmp_file, "w", encoding="utf-8") as f:
+            json.dump(schedule, f, ensure_ascii=False, indent=2)
+        # atomic rename — ป้องกันไฟล์เสียถ้า crash ระหว่างเขียน
+        if os.path.exists(SCHEDULE_FILE):
+            os.replace(tmp_file, SCHEDULE_FILE)
+        else:
+            os.rename(tmp_file, SCHEDULE_FILE)
+    except Exception as e:
+        safe_print(f"[ERROR] บันทึก schedule ไม่สำเร็จ: {e}")
+
+
+def validate_schedule(schedule):
+    """ตรวจสอบความถูกต้องของ schedule ที่โหลดมา"""
+    required_keys = ["date", "tasks"]
+    for key in required_keys:
+        if key not in schedule:
+            return False
+    if not isinstance(schedule.get("tasks"), list):
+        return False
+    return True
 
 
 def get_min_gap_for_quota(quota):
@@ -271,8 +291,8 @@ def apply_backoff(schedule, task_index, consecutive_fails):
                 old_time = datetime.strptime(tasks[i]["time"], "%H:%M")
                 new_time = old_time + timedelta(minutes=backoff)
                 tasks[i]["time"] = new_time.strftime("%H:%M")
-            except:
-                pass
+            except (ValueError, KeyError) as e:
+                safe_print(f"[BACKOFF] เลื่อนเวลา task {i} ไม่ได้: {e}")
     
     save_schedule(schedule)
     return backoff
@@ -307,7 +327,12 @@ def get_schedule_for_today(pages, force_regenerate=False):
     """
     schedule = load_schedule()
     today = get_today_str()
-    
+
+    # ตรวจสอบว่า schedule ที่โหลดมาถูกต้องไหม
+    if schedule and not validate_schedule(schedule):
+        safe_print(f"[WARNING] schedule file เสีย/ไม่ครบ — จะสร้างใหม่")
+        schedule = {}
+
     # ถ้ายังไม่มีตารางวันนี้ หรือตารางเก่า -> สร้างใหม่
     if schedule.get("date") != today or force_regenerate:
         safe_print(f"[SCHEDULER] Creating new schedule for {today}")

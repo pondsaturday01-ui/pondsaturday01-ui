@@ -1,6 +1,7 @@
 import customtkinter as ctk
 import subprocess
 import threading
+import signal
 import sys
 import os
 import time
@@ -276,17 +277,22 @@ class BotDashboard(ctk.CTk):
                 env_config["PYTHONIOENCODING"] = "utf-8"
                 env_config["PYTHONUNBUFFERED"] = "1"
 
-                self.process = subprocess.Popen(
-                    command_list, 
-                    stdout=subprocess.PIPE, 
-                    stderr=subprocess.STDOUT, 
+                popen_kwargs = dict(
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
                     text=True,
                     encoding='utf-8',
                     errors='ignore',
-                    creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == 'win32' else 0,
                     env=env_config,
-                    bufsize=0
+                    bufsize=0,
                 )
+                if sys.platform == 'win32':
+                    popen_kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
+                else:
+                    # Linux/macOS: สร้าง process group เพื่อให้ stop_bot kill ได้ทั้ง tree
+                    popen_kwargs["preexec_fn"] = os.setsid
+
+                self.process = subprocess.Popen(command_list, **popen_kwargs)
 
                 for line in iter(self.process.stdout.readline, ''):
                     if line:
@@ -367,8 +373,18 @@ class BotDashboard(ctk.CTk):
     def stop_bot(self):
         if self.process:
             self.log_message("🛑 สั่งหยุดบอททันที!!!")
-            subprocess.call("taskkill /F /T /PID " + str(self.process.pid), shell=True)
-            self.process = None
+            try:
+                if sys.platform == "win32":
+                    # Windows: ใช้ taskkill เพื่อ kill process tree ทั้งหมด
+                    subprocess.call(f"taskkill /F /T /PID {self.process.pid}", shell=True)
+                else:
+                    # Linux/macOS: ส่ง signal SIGTERM แล้วรอ แล้วค่อย SIGKILL
+                    os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
+            except (ProcessLookupError, OSError) as e:
+                self.log_message(f"⚠️ Process อาจจบไปแล้ว: {e}")
+            finally:
+                self.process = None
+                self.finish_running()
 
 if __name__ == "__main__":
     app = BotDashboard()
