@@ -19,17 +19,41 @@ class FacebookReelsBot:
     def log(self, message):
         print(f"[{time.strftime('%H:%M:%S')}] {message}")
 
+    def is_driver_alive(self):
+        """ตรวจสอบว่า Chrome driver ยังทำงานอยู่ไหม"""
+        if self.driver is None:
+            return False
+        try:
+            _ = self.driver.title
+            return True
+        except Exception:
+            return False
+
+    def safe_quit(self):
+        """ปิด Chrome อย่างปลอดภัย — ไม่พังแม้ driver ตายไปแล้ว"""
+        if self.driver is not None:
+            try:
+                self.driver.quit()
+            except Exception as e:
+                self.log(f"⚠️ ปิด Chrome ไม่สำเร็จ (อาจปิดไปแล้ว): {e}")
+            finally:
+                self.driver = None
+
     def setup_driver(self):
         self.log(f">>> กำลังเปิด Chrome (Profile: {self.profile_name})...")
-        options = webdriver.ChromeOptions()
-        # ใช้ profile แยกแต่ละเพจ
-        profile_path = os.path.join(os.getcwd(), self.profile_name)
-        options.add_argument(f"user-data-dir={profile_path}")
-        options.add_experimental_option("detach", True)
-        options.add_argument("--disable-notifications")
+        try:
+            options = webdriver.ChromeOptions()
+            # ใช้ profile แยกแต่ละเพจ
+            profile_path = os.path.join(os.getcwd(), self.profile_name)
+            options.add_argument(f"user-data-dir={profile_path}")
+            options.add_experimental_option("detach", True)
+            options.add_argument("--disable-notifications")
 
-        self.driver = webdriver.Chrome(options=options)
-        self.driver.maximize_window()
+            self.driver = webdriver.Chrome(options=options)
+            self.driver.maximize_window()
+        except Exception as e:
+            self.log(f"❌ เปิด Chrome ไม่ได้: {e}")
+            raise
 
     def safe_click(self, xpath, timeout=5):
         try:
@@ -37,7 +61,10 @@ class FacebookReelsBot:
             element = wait.until(EC.element_to_be_clickable((By.XPATH, xpath)))
             element.click()
             return True
-        except:
+        except TimeoutException:
+            return False
+        except Exception as e:
+            self.log(f"⚠️ safe_click ล้มเหลว ({xpath[:50]}): {e}")
             return False
 
     # ---------------------------------------------------------
@@ -77,9 +104,13 @@ class FacebookReelsBot:
                 driver.execute_script("arguments[0].click();", btn)
                 self.log(f"   ✅ เจอปุ่มสลับแล้ว!")
                 switch_found = True
-                time.sleep(3) 
+                time.sleep(3)
                 break
-            except: continue
+            except TimeoutException:
+                continue
+            except Exception as e:
+                self.log(f"   ⚠️ ลองปุ่มสลับ xpath ไม่ผ่าน: {e}")
+                continue
 
         if switch_found:
             self.log("👉 รอกดปุ่มยืนยัน...")
@@ -89,8 +120,11 @@ class FacebookReelsBot:
                 confirm_btn.click()
                 self.log("   ✅ ยืนยันสลับร่างสำเร็จ!")
                 time.sleep(8) 
-            except:
+            except TimeoutException:
                 self.log("   ⚠️ ไม่เจอ Popup ยืนยัน (อาจจะสลับเรียบร้อยแล้ว)")
+                time.sleep(5)
+            except Exception as e:
+                self.log(f"   ⚠️ กดยืนยันสลับมีปัญหา: {e}")
                 time.sleep(5)
         else:
             self.log("ℹ️ ไม่เจอปุ่มสลับ (สมมติว่าอยู่ถูกเพจแล้ว หรือหาไม่เจอ)")
@@ -167,7 +201,8 @@ class FacebookReelsBot:
                         if "กลุ่ม" not in btn.text and "Group" not in btn.text:
                             target_btn = btn
                             break
-                    except: continue
+                    except Exception:
+                        continue
 
                 if not target_btn:
                     post_xpath = "//div[@role='button']//span[normalize-space(text())='โพสต์' or normalize-space(text())='Post']"
